@@ -1,0 +1,7 @@
+[deps]
+AutoPrettyPrinting = "9109d3c5-9510-494f-be9f-db449708e717"
+Dates = "ade2ca70-3891-5945-98fb-dc099432e06a"
+Dictionaries = "85a47980-9c8c-11e8-2b9f-f7ca1fa99fb4"
+Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
+Sockets = "6462fe0b-24de-5631-8697-dd941f90decc"
+TimeZones = "f269a46b-ccf7-5d73-abea-4c690281aa53"
