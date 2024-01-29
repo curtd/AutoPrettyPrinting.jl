@@ -138,3 +138,47 @@ end
 for T in (:IPv4, :IPv6)
     @eval @def_pprint_atomic all_mime_types=true Sockets.$T 
 end
+
+"""
+    PPrintContext(io::IO, [mime::MIME])
+
+Create a `PPrintContext` that wraps a given stream. 
+
+Subsequent calls to `Base.show(context::PPrintContext, ::MIME, x)` will use the pretty printing machinery provided in this package to render `x`. This type is useful primarily when `x` has a `custom_tile` method defined (or provided by this package), but the primary `Base.show` methods are defined outside of this package and should not be overridden. 
+
+Additionally, if a `mime::MIME` type is provided, subsequent calls to `Base.show(context::PPrintContext, x)` will dispatch using the provided `mime` instance. 
+"""
+struct PPrintContext{IO_t <: IO, M<:Union{MIME, Nothing}} 
+    io::IO_t
+    mime::M
+end
+PPrintContext(io::IO) = PPrintContext{typeof(io), Nothing}(io, nothing)
+PPrintContext(io::IO, mime::MIME) = PPrintContext{typeof(io), typeof(mime)}(io, mime)
+PPrintContext(io::IO, mime::AbstractString) = PPrintContext(io, MIME(mime))
+Base.show(context::PPrintContext, mime::MIME, x) = pprint(context.io, mime, x)
+
+Base.show(context::PPrintContext{<:IO, <:MIME}, x) = show(context, context.mime, x)
+
+"""
+    repr_pretty([mime], x; context=nothing)
+
+If `istextmime(mime)` is `true`, returns an `AbstractString` containing the representation of `x` in the requested `mime` type rendered with the `AutoPrettyPrinting.pprint` method. 
+
+Otherwise returns `repr(mime, x; context)`.
+
+If `mime` is not provided, defaults to `MIME"text/plain"`.
+"""
+function repr_pretty(mime, x; context=nothing) 
+    if istextmime(mime)
+        io = IOBuffer()
+        if context === nothing 
+            show(PPrintContext(io, mime), x)
+        else
+            show(PPrintContext(IOContext(io, context), mime), x)
+        end
+        return String(take!(io))
+    else
+        return repr(mime, x; context)
+    end
+end
+repr_pretty(x; context=nothing) = repr_pretty(MIME"text/plain"(), x; context)

@@ -8,6 +8,9 @@ const PP_DEFAULT_INDENT_NUM_SPACES = Ref(2)
 # Higher number encourages top-level struct to render in horizontal mode, if it does not fit on the current line
 const PP_BREAK_FACTOR = Ref(1)
 
+default_indent_width() = PP_DEFAULT_INDENT_NUM_SPACES[]
+_indent(width::Int=default_indent_width()) = literal(' '^width)
+
 """
     KeyValue(key, value)
 
@@ -34,6 +37,7 @@ kv_separator_vert((@nospecialize x)) = kv_separator_vert(typeof(x))
 const vector_parentheses = ("[", "]")
 const set_parentheses = ("{", "}")
 const dict_parentheses = ("(", ")")
+const named_tuple_parentheses = ("(; ", ")")
 const empty_parentheses = ("", "")
 
 const default_horiz_separator = ", "
@@ -56,7 +60,7 @@ function list_layout_prefer_horizontal(horizontal_items::Vector{<:Union{Nothing,
     horizontal_sep::String=default_horiz_separator,
     vertical_sep::String=default_vert_separator,
     sep_brk=:end,
-    tab::Int=PP_DEFAULT_INDENT_NUM_SPACES[], 
+    indent_width::Int=PP_DEFAULT_INDENT_NUM_SPACES[], 
     break_factor::Int=1,
     spill_factor::Int=1, 
     allow_horiz::Bool=false,
@@ -75,7 +79,7 @@ function list_layout_prefer_horizontal(horizontal_items::Vector{<:Union{Nothing,
     horizontal_sep = literal(horizontal_sep)
     sepl_lt = literal(sep_brk == :start || sep_brk == :both ? lstrip(vertical_sep) : "")
     sepr_lt = literal(sep_brk == :end || sep_brk == :both ? rstrip(vertical_sep) : "")
-    tab_lt = literal(' '^tab)
+    left_indent = _indent(indent_width)
 
     if !isempty(vertical_items) && allow_vert
         first_vert_item_index = findfirst(!isnothing, vertical_items)
@@ -85,7 +89,7 @@ function list_layout_prefer_horizontal(horizontal_items::Vector{<:Union{Nothing,
                 vlt = (vlt * sepr_lt) / (sepl_lt * item_v)
             end
             if !header_footer_empty
-                vlt = header / (tab_lt*vlt) /  footer
+                vlt = header / (left_indent*vlt) /  footer
             end
         else
             vlt = nothing 
@@ -132,6 +136,10 @@ list_layout_prefer_horizontal(items::Vector{<:Union{Nothing,Layout}}; kwargs...)
 Returns the layout associated with `x` for a given `mime` type. 
     
 Defaults to `PrettyPrinting.tile(x)` if unspecified.
+
+You can override this method for objects `x::T` of your own custom type `T` to control how the objects of type `T` are rendered by this package for a given `MIME` type.
+
+See also [`@custom_tile`](@ref)
 """
 custom_tile(x, ::MIME; kwargs...) = PrettyPrinting.tile(x)
 

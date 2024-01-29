@@ -1,2 +1,2 @@
-include("doctests.jl")
 include("TestAutoPrettyPrinting.jl")
+include("doctests.jl")
