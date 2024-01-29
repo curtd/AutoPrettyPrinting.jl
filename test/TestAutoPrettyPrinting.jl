@@ -27,6 +27,8 @@ module TestAutoPrettyPrinting
     @custom_tile mime_types="text/testing" base_show=true SimpleStruct1 => AutoPrettyPrinting.literal(string(_obj_.key1*2))
     @def_pprint mime_types="text/testing" base_show=true SimpleStruct2
 
+    @def_pprint mime_types="text/plain" base_show=false TooManyFields
+
     @testset "AutoPrettyPrinting" begin 
         @testset "Utilities" begin 
             @test_cases begin 
@@ -53,5 +55,19 @@ module TestAutoPrettyPrinting
         s = SimpleStruct2(1, "abc")
         @Test repr(MIME("text/plain"), s) == "$SimpleStruct2(1, \"abc\")"
         @Test repr(MIME("text/testing"), s) == "SimpleStruct2(key1 = 1, key2 = abc)"
+    end
+    @testset "Printing" begin 
+        x = TooManyFields(1,2,3,4,5)
+        @Test repr("text/plain", x) == "$TooManyFields(1, 2, 3, 4, 5)"
+
+        io = IOBuffer()
+        context = PPrintContext(io)
+        show(context, MIME("text/plain"), x)
+        str = String(take!(io))
+        ref_repr = "TooManyFields(\n  key1 = 1\n  key2 = 2\n  key3 = 3\n  key4 = 4\n  key5 = 5\n)"
+        @Test str == ref_repr
+        @Test repr_pretty(x) == ref_repr
+
+
     end
 end

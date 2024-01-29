@@ -1,7 +1,4 @@
 using Pkg
-#src_dir = abspath(joinpath(@__DIR__, ".."))
-#Pkg.develop(path=src_dir)
-
 using AutoPrettyPrinting
 Pkg.activate(@__DIR__)
 Pkg.instantiate()

@@ -8,6 +8,9 @@ module AutoPrettyPrinting
     
     export @mime_type, @custom_tile, @def_pprint, @hide_typename, @def_pprint_atomic
 
+    export PPrintContext
+    export repr_pretty
+
     const PPRINT_NESTED_LEVEL = ScopedValue{Int}(0)
     const PPRINT_PARENT_IS_CONTAINER = ScopedValue{Bool}(false)
     const PPRINT_SHOW_TYPENAME = ScopedValue{Bool}(true)
