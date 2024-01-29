@@ -60,6 +60,20 @@ module TestAutoPrettyPrinting
         x = TooManyFields(1,2,3,4,5)
         @Test repr("text/plain", x) == "$TooManyFields(1, 2, 3, 4, 5)"
 
+        t = (; x=x)
+        ref_repr = """
+        (; 
+          x = TooManyFields(
+                key1 = 1
+                key2 = 2
+                key3 = 3
+                key4 = 4
+                key5 = 5
+              )
+        )"""
+        @Test repr("text/plain", t) == "(x = $TooManyFields(1, 2, 3, 4, 5),)"
+        @Test repr_pretty(t)  == ref_repr
+
         io = IOBuffer()
         context = PPrintContext(io)
         show(context, MIME("text/plain"), x)
@@ -67,7 +81,6 @@ module TestAutoPrettyPrinting
         ref_repr = "TooManyFields(\n  key1 = 1\n  key2 = 2\n  key3 = 3\n  key4 = 4\n  key5 = 5\n)"
         @Test str == ref_repr
         @Test repr_pretty(x) == ref_repr
-
 
     end
 end

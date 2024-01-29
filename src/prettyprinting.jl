@@ -37,6 +37,7 @@ kv_separator_vert((@nospecialize x)) = kv_separator_vert(typeof(x))
 const vector_parentheses = ("[", "]")
 const set_parentheses = ("{", "}")
 const dict_parentheses = ("(", ")")
+const named_tuple_parentheses = ("(; ", ")")
 const empty_parentheses = ("", "")
 
 const default_horiz_separator = ", "
