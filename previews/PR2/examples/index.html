@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Example Usage · AutoPrettyPrinting.jl</title><meta name="title" content="Example Usage · AutoPrettyPrinting.jl"/><meta property="og:title" content="Example Usage · AutoPrettyPrinting.jl"/><meta property="twitter:title" content="Example Usage · AutoPrettyPrinting.jl"/><meta name="description" content="Documentation for AutoPrettyPrinting.jl."/><meta property="og:description" content="Documentation for AutoPrettyPrinting.jl."/><meta property="twitter:description" content="Documentation for AutoPrettyPrinting.jl."/><meta property="og:url" content="https://curtd.github.io/AutoPrettyPrinting.jl/examples/"/><meta property="twitter:url" content="https://curtd.github.io/AutoPrettyPrinting.jl/examples/"/><link rel="canonical" href="https://curtd.github.io/AutoPrettyPrinting.jl/examples/"/><script data-outdated-warner src="../assets/warner.js"></script><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.050/juliamono.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.8/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL=".."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../assets/documenter.js"></script><script src="../search_index.js"></script><script src="../siteinfo.js"></script><script src="../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../assets/themeswap.js"></script></head><body><div id="documenter"><nav class="docs-sidebar"><div class="docs-package-name"><span class="docs-autofit"><a href="../">AutoPrettyPrinting.jl</a></span></div><button class="docs-search-query input is-rounded is-small is-clickable my-2 mx-auto py-1 px-2" id="documenter-search-query">Search docs (Ctrl + /)</button><ul class="docs-menu"><li><a class="tocitem" href="../">Home</a></li><li class="is-active"><a class="tocitem" href>Example Usage</a></li><li><a class="tocitem" href="../api/">API</a></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><a class="docs-sidebar-button docs-navbar-link fa-solid fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a><nav class="breadcrumb"><ul class="is-hidden-mobile"><li class="is-active"><a href>Example Usage</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>Example Usage</a></li></ul></nav><div class="docs-right"><a class="docs-navbar-link" href="https://github.com/curtd/AutoPrettyPrinting.jl/blob/main/docs/src/examples.md#" title="Edit source on GitHub"><span class="docs-icon fa-solid"></span></a><a class="docs-settings-button docs-navbar-link fa-solid fa-gear" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-article-toggle-button fa-solid fa-chevron-up" id="documenter-article-toggle-button" href="javascript:;" title="Collapse all docstrings"></a></div></header><article class="content" id="documenter-page"><h1 id="Example-usage"><a class="docs-heading-anchor" href="#Example-usage">Example usage</a><a id="Example-usage-1"></a><a class="docs-heading-anchor-permalink" href="#Example-usage" title="Permalink"></a></h1><p>If we&#39;re not particular about the particular layout or format of our generated layouts, we can use the <code>@def_pprint</code> macro to define our <code>Base.show</code> method for the default <code>&quot;text/plain&quot;</code> MIME type.</p><pre><code class="language-julia-repl hljs">julia&gt; using AutoPrettyPrinting
+
+julia&gt; struct A 
+           key1::Int 
+           key2::String
+       end
+
+julia&gt; @def_pprint mime_types=&quot;text/plain&quot; base_show=true A
+
+julia&gt; a = A(10, &quot;abcd&quot;)
+A(key1 = 10, key2 = abcd)</code></pre><p>Once we&#39;ve registered a custom type <code>A</code> with this package, we can also register custom types that use <code>A</code> as a sub-field</p><pre><code class="language-julia-repl hljs">julia&gt; struct B 
+           data::Vector{A}
+       end
+
+julia&gt; @def_pprint mime_types=&quot;text/plain&quot; base_show=true B 
+
+julia&gt; b = B([A(i, &quot;a&quot;^i) for i in 1:10])
+B(
+  data = [
+           A(key1 = 1, key2 = a)
+           A(key1 = 2, key2 = aa)
+           A(key1 = 3, key2 = aaa)
+           A(key1 = 4, key2 = aaaa)
+           A(key1 = 5, key2 = aaaaa)
+           A(key1 = 6, key2 = aaaaaa)
+           A(key1 = 7, key2 = aaaaaaa)
+           A(key1 = 8, key2 = aaaaaaaa)
+           A(key1 = 9, key2 = aaaaaaaaa)
+           A(key1 = 10, key2 = aaaaaaaaaa)
+         ]
+)</code></pre><p>Internal heuristics defined in this package automatically use a more compact representation when the objects don&#39;t contain too many elements and are sufficient simple.</p><pre><code class="language-julia-repl hljs">julia&gt; b = B([A(i, &quot;a&quot;^i) for i in 1:2])
+B(data = [A(key1 = 1, key2 = a), A(key1 = 2, key2 = aa)])</code></pre><p>Out of the box, <code>AutoPrettyPrinting</code> supports rendering of <code>AbstractVector</code>, <code>AbstractDict</code>, and <code>AbstractSet</code> types. Via package extensions, <code>AbstractDictionary</code> objects from <a href="https://github.com/andyferris/Dictionaries.jl"><code>Dictionaries.jl</code></a>, and types from <a href="https://github.com/JuliaTime/TimeZones.jl"><code>TimeZones.jl</code></a> and from the <code>Dates</code> and <code>Sockets</code> standard library packages are also supported.</p><pre><code class="language-julia-repl hljs">julia&gt; using Dates, Dictionaries, Sockets, TimeZones
+
+julia&gt; struct C
+           timezones::Dictionary{Symbol, TimeZone}
+           ips::Set{IPv4}
+           dt::DateTime
+       end
+
+julia&gt; @def_pprint mime_types=&quot;text/plain&quot; base_show=true C
+
+julia&gt; c = C(dictionary((:a =&gt; tz&quot;America/Los_Angeles&quot;, :b =&gt; tz&quot;America/New_York&quot;)), Set((ip&quot;0.0.0.0&quot;, ip&quot;127.0.0.1&quot;)), DateTime(2024, 1, 25))
+C(
+  timezones = Dictionary( :a =&gt; America/Los_Angeles, :b =&gt; America/New_York )
+  ips       = { 0.0.0.0, 127.0.0.1 }
+  dt        = 2024-01-25T00:00:00
+)</code></pre><p>If you&#39;d like more control over the generated layout behaviour for an object than the default provided by <code>@def_pprint</code>, you can define your own via the <code>@custom_tile</code> macro as follows.</p><pre><code class="language-julia-repl hljs">julia&gt; struct D 
+           value::Int
+       end
+
+julia&gt; @custom_tile mime_types=&quot;text/plain&quot; base_show=true D =&gt; AutoPrettyPrinting.literal(&quot;CustomD $(_obj_.value^2)&quot;)
+
+julia&gt; d = D(10)
+CustomD 100</code></pre><p>You can register your own <code>MIME</code> types with this package using the <code>@mime_type</code> macro. Subsequent calls to <code>@custom_tile</code> or <code>@def_pprint</code> without a <code>mime_types</code> argument specified will use all of the mime types previously defined. </p><pre><code class="language-julia-repl hljs">julia&gt; @mime_type &quot;text/testing&quot;
+</code></pre><pre><code class="language-julia-repl hljs">julia&gt; struct E 
+           value::Int
+       end
+</code></pre><pre><code class="language-julia-repl hljs">julia&gt; @custom_tile base_show=true E =&gt; AutoPrettyPrinting.literal(&quot;CustomE $(_obj_.value-1) - $(_mime_)&quot;)
+
+julia&gt; e = E(10)
+CustomE 9 - text/plain
+
+julia&gt; repr(MIME(&quot;text/plain&quot;), e), repr(MIME(&quot;text/testing&quot;), e)
+(&quot;CustomE 9 - text/plain&quot;, &quot;CustomE 9 - text/testing&quot;)</code></pre><div class="admonition is-info"><header class="admonition-header">Note</header><div class="admonition-body"><p>Prior to the registration of the <code>&quot;text/testing&quot;</code> mime type above, the previously defined layout methods for, e.g., type <code>D</code>, would only have been generated for the <code>&quot;text/plain&quot;</code> MIME type. </p><pre><code class="language-julia-repl hljs">julia&gt; repr(MIME(&quot;text/testing&quot;), d)
+ERROR: MethodError: no method matching show(::IOBuffer, ::MIME{Symbol(&quot;text/testing&quot;)}, ::D)</code></pre></div></div></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../">« Home</a><a class="docs-footer-nextpage" href="../api/">API »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="auto">Automatic (OS)</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.2.1 on <span class="colophon-date" title="Monday 29 January 2024 17:41">Monday 29 January 2024</span>. Using Julia version 1.9.4.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
