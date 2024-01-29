@@ -20,12 +20,12 @@ module TestAutoPrettyPrinting
 
     @Test Set(AutoPrettyPrinting.mime_types_to_generate()) == Set((Symbol("text/plain"), ))
 
-    @mime_type "text/testing"
+    @mime_type "text/test_auto_pretty_printing"
 
-    @Test Set(AutoPrettyPrinting.mime_types_to_generate()) == Set((Symbol("text/plain"), Symbol("text/testing")))
+    @Test Set(AutoPrettyPrinting.mime_types_to_generate()) == Set((Symbol("text/plain"), Symbol("text/test_auto_pretty_printing")))
 
-    @custom_tile mime_types="text/testing" base_show=true SimpleStruct1 => AutoPrettyPrinting.literal(string(_obj_.key1*2))
-    @def_pprint mime_types="text/testing" base_show=true SimpleStruct2
+    @custom_tile mime_types="text/test_auto_pretty_printing" base_show=true SimpleStruct1 => AutoPrettyPrinting.literal(string(_obj_.key1*2))
+    @def_pprint mime_types="text/test_auto_pretty_printing" base_show=true SimpleStruct2
 
     @def_pprint mime_types="text/plain" base_show=false TooManyFields
 
@@ -49,12 +49,12 @@ module TestAutoPrettyPrinting
     @testset "@custom_tile" begin 
         s = SimpleStruct1(1)
         @Test repr(MIME("text/plain"), s) == "$SimpleStruct1(1)"
-        @Test repr(MIME("text/testing"), s) == "2"
+        @Test repr(MIME("text/test_auto_pretty_printing"), s) == "2"
     end
     @testset "@def_pprint" begin 
         s = SimpleStruct2(1, "abc")
         @Test repr(MIME("text/plain"), s) == "$SimpleStruct2(1, \"abc\")"
-        @Test repr(MIME("text/testing"), s) == "SimpleStruct2(key1 = 1, key2 = abc)"
+        @Test repr(MIME("text/test_auto_pretty_printing"), s) == "SimpleStruct2(key1 = 1, key2 = abc)"
     end
     @testset "Printing" begin 
         x = TooManyFields(1,2,3,4,5)
