@@ -31,20 +31,25 @@ macro pprint_values(args...)
     return pprint_values_expr(esc(args[end]); level, next_level, parent_is_container, show_typename)
 end
 
-_is_atomic_type(T) = false
+_is_atomic_type((@nospecialize T::Type)) = false
 _is_atomic_type(::Type{Symbol}) = true
+
+_is_atomic_type(x) = _is_atomic_type(typeof(x))
 
 const simple_struct_nfields_threshold = 4
 
-function is_simple_struct((@nospecialize T::Type))
+function is_simple_struct(t)
+    T = typeof(t) 
     if isstructtype(T)
-        return length(fieldnames(T)) ≤ simple_struct_nfields_threshold && all( (_is_atomic_type(fieldtype(T, k))) || is_simple_struct(fieldtype(T, k)) for k in fieldnames(T) )
+        return length(fieldnames(T)) ≤ simple_struct_nfields_threshold && all( (v = getfield(t, k); (_is_atomic_type(v) || is_simple_struct(v))) for k in fieldnames(T) )
     else
-        return false
+        return false 
     end
 end
 
-is_simple_struct((@nospecialize t)) = is_simple_struct(typeof(t))
+function is_simple_struct((@nospecialize t::Union{Tuple, NamedTuple}))
+    return length(t) ≤ simple_struct_nfields_threshold && all( (_is_atomic_type( v ) || is_simple_struct(v)) for v in t )
+end
 
 function should_allow_horiz_container((@nospecialize x))
     if x isa AbstractDict 

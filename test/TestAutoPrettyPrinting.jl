@@ -17,6 +17,10 @@ module TestAutoPrettyPrinting
         key4::Int
         key5::Int
     end
+    struct TupleFields 
+        t::Tuple 
+        nt::NamedTuple
+    end
 
     @Test Set(AutoPrettyPrinting.mime_types_to_generate()) == Set((Symbol("text/plain"), ))
 
@@ -29,14 +33,18 @@ module TestAutoPrettyPrinting
 
     @def_pprint mime_types="text/plain" base_show=false TooManyFields
 
+    @def_pprint base_show=true TupleFields
+
     @testset "AutoPrettyPrinting" begin 
         @testset "Utilities" begin 
             @test_cases begin 
-                T             |   output
-                SimpleStruct1 | true 
-                SimpleStruct2 | true 
-                TooManyFields | false 
-                @test AutoPrettyPrinting.is_simple_struct(T) == output
+                x                                    |   output
+                SimpleStruct1(1)                     | true 
+                SimpleStruct2(1, "abc")              | true 
+                TooManyFields(1,2,3,4,5)             | false 
+                TupleFields((1,2), (; key1=1))       | true 
+                TupleFields((1,2,3,4,5), (; key1=1)) | false
+                @test AutoPrettyPrinting.is_simple_struct(x) == output
             end
             show_typename = AutoPrettyPrinting.PPRINT_SHOW_TYPENAME[]
             @Test show_typename
@@ -57,6 +65,15 @@ module TestAutoPrettyPrinting
         @Test repr(MIME("text/test_auto_pretty_printing"), s) == "SimpleStruct2(key1 = 1, key2 = abc)"
     end
     @testset "Printing" begin 
+        x = SimpleStruct1(1)
+        y = SimpleStruct2(2, "b")
+        t = tuple(x, y)
+        @Test repr_pretty(MIME("text/test_auto_pretty_printing"), t) == "(2, SimpleStruct2(key1 = 2, key2 = b))"
+
+        z = TupleFields(t, (; key1=1:3))
+        @Test repr("text/plain", z) == """TupleFields(t = ($SimpleStruct1(1), $SimpleStruct2(2, "b")), nt = (; key1 = [1, 2, 3]))"""
+        @Test repr("text/test_auto_pretty_printing", z) == """TupleFields(t = (2, SimpleStruct2(key1 = 2, key2 = b)), nt = (; key1 = [1, 2, 3]))"""
+
         x = TooManyFields(1,2,3,4,5)
         @Test repr("text/plain", x) == "$TooManyFields(1, 2, 3, 4, 5)"
 
