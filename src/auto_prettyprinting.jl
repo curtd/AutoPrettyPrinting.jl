@@ -18,13 +18,71 @@ function normalize_mime_type_args(mime_types; generic_mime::Bool)
         return _normalize_mime_type_args(mime_types)
     end
 end
-function custom_tile_expr(typename, mime_type, tile_expr; _sourceinfo=nothing, generate_base_show::Bool)
+function mime_from_type_expr(expr)
+    if expr === :MIME 
+        return GenericMimeType()
+    elseif (g = from_expr(MacroCall, expr); !isnothing(g))
+        g.name === Symbol("@MIME_str") || throw(@arg_error expr "Expected an expression of the form `MIME\"mime_type\"`")
+        length(g.args) == 1 || throw(@arg_error expr "Expected expression to have a single argument")
+        arg = only(g.args)
+        arg isa String || throw(@arg_error expr "Expected expression to have a `String` argument, got typeof(arg) = $(typeof(arg))")
+        return arg
+    elseif (g = from_expr(CurlyExpr{:MIME, Any}, expr); !isnothing(g))
+        length(g.args) == 1 || throw(@arg_error expr "Expected expression to have a single argument")
+        arg = only(g.args)
+        if arg isa QuoteNode
+            return String(arg.value)
+        elseif (f = from_expr(FuncCall, arg); !isnothing(f))
+            (f.funcname ∉ (:(Symbol), :(Base.Symbol)) || length(f.args) != 1) && throw(@arg_error arg "Function call expression must be of the form `Symbol(str)`")
+            f_arg = only(f.args).value
+            if f_arg isa String 
+                return f_arg
+            elseif f_arg isa Symbol
+                return string(f_arg)
+            else
+                throw(@arg_error arg "Function call expression must have a `String` or `QuoteNode` inner argument -- got typeof(arg) = $(typeof(f_arg))") 
+            end
+        else
+            throw(@arg_error arg "Expression must be a `Symbol` or an expression of the form `Symbol(str)`")
+        end
+    else
+        throw(@arg_error expr "Expression must be of the form `MIME`, `MIME\"str\"`, or `MIME{symbol_or_str}`")
+    end
+end
+
+function custom_tile_func_def_expr(tile_expr, mime_types, generic_mime)
     object_arg = :_obj_
     mime_arg = :_mime_
-   
+    g = from_expr(FuncDef, tile_expr)
+    object_arg = :_obj_
+    mime_arg = :_mime_
+    if !isnothing(g)
+        length(g.args) == 2 || throw(@arg_error tile_expr "Must have exactly two arguments")
+        arg1 = g.args[1]
+        if is_provided(arg1.name)
+            object_arg = arg1.name 
+        end
+        arg2 = g.args[2]
+        if is_provided(arg2.name)
+            mime_arg = arg2.name 
+        end
+        if is_provided(arg2.type)
+            mime_type = mime_from_type_expr(arg2.type)
+            if mime_type isa GenericMimeType
+                generic_mime = true
+            else
+                mime_types = [mime_type]
+            end
+        end
+        tile_expr = g.body
+    end
+    return object_arg, mime_arg, tile_expr, mime_types, generic_mime
+end
+function custom_tile_expr(typename, mime_type, tile_expr; _sourceinfo=nothing, generate_base_show::Bool, object_arg::Symbol, mime_arg::Symbol)
     output = Any[]
     body = Expr(:block, _sourceinfo, tile_expr)
     push!(output, :($AutoPrettyPrinting.custom_tile($(object_arg)::$(typename), $(mime_arg)::$(mime_type); kwargs...) = $(body)))
+    append!(output, [:($AutoPrettyPrinting.$f($(object_arg)::$(typename), $(mime_arg)::$(mime_type); kwargs...) = $custom_tile($object_arg, $mime_arg; kwargs...)) for f in (:custom_tile_horiz, :custom_tile_vert)])
     if generate_base_show
         push!(output, generate_base_show_expr(typename, mime_type; _sourceinfo))
     end
@@ -40,26 +98,26 @@ Defines a `AutoPrettyPrinting.custom_tile` method for type `T` and optionally pr
 - $mime_types_docstr
 - $generic_mime_docstr
 - $base_show_docstr
-- `custom_tile_expr`: Expression to be used for the body of the `custom_tile` method. Each expression should use a `_obj_` placeholder to indicate the object of type `T` and a `_mime_` placeholder to indicate the mime type. 
+- `custom_tile_expr`: Expression to be used for the body of the `custom_tile` method. If this value is a `block` expression, it should contain a `_obj_` placeholder to indicate the object of type `T` and a `_mime_` placeholder to indicate the mime type. Otherwise, it can be a function definition expression of the form `(object, mime_type)->expr`.
 """
 macro custom_tile(args...)
     length(args) ≥ 1 || error("Need at least one argument for @custom_tile")
     @parse_kwargs args[1:end-1]... begin 
         base_show::Bool = false 
         generic_mime::Bool = false
-        mime_types::Union{Vector{String}, Symbol, Nothing} = nothing
+        mime_types::Union{Vector{String}, Nothing} = nothing
     end
-    mime_types = normalize_mime_type_args(mime_types; generic_mime)
     expr = args[end]
     f = from_expr(PairExpr{Any, Any}, expr; throw_error=true)
     typename = f.lhs
-    tile_expr = f.rhs
+    object_arg, mime_arg, tile_expr, mime_types, generic_mime = custom_tile_func_def_expr(f.rhs, mime_types, generic_mime)
+    mime_types = normalize_mime_type_args(mime_types; generic_mime)
 
     _sourceinfo = __source__
     output = Expr(:block, _sourceinfo)
     
     for mime_type in mime_type_exprs(mime_types) 
-        append!(output.args, custom_tile_expr(typename, mime_type, tile_expr; _sourceinfo, generate_base_show=base_show))
+        append!(output.args, custom_tile_expr(typename, mime_type, tile_expr; _sourceinfo, generate_base_show=base_show, object_arg, mime_arg))
     end
 
     return output |> esc
