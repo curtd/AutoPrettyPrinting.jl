@@ -1,11 +1,20 @@
+struct GenericMimeType 
+end
+
+const mime_text_plain_type_expr = :(MIME"text/plain")
 const default_custom_tile_expr = (propertyname)->nothing
 
-function generate_base_show_expr(typename, mime_sym; _sourceinfo=nothing)
+const generic_mime_type_expr = :($Base.MIME)
+
+mime_type_exprs(::GenericMimeType; add_text_plain::Bool=false) = add_text_plain ? Any[generic_mime_type_expr, mime_text_plain_type_expr] : Any[generic_mime_type_expr]
+mime_type_exprs(mime_types::Vector{Symbol}; kwargs...) = Any[:($Base.MIME{$(QuoteNode(mime_t))}) for mime_t in mime_types]
+
+function generate_base_show_expr(typename, mime_type; _sourceinfo=nothing)
     body = Expr(:block)
     !isnothing(_sourceinfo) && push!(body.args, _sourceinfo)
     push!(body.args, :($AutoPrettyPrinting.pprint(io, mime, o)))
 
-    return :($Base.show(io::IO, mime::MIME{$(mime_sym)}, o::$typename) = $body)
+    return :($Base.show(io::IO, mime::$(mime_type), o::$typename) = $body)
 end
 
 function _per_property_pprint_exprs(f_exprs, properties; vert_layout_rpad::Int=0, input_obj::Symbol)
@@ -50,7 +59,7 @@ function custom_tile_horiz_or_vert_body_expr(layout_expr, object_list; prefix=""
     end ))
 end
 
-function per_property_pprint_exprs(f_exprs, properties, typename; mime_types::Vector{Symbol}, generate_base_show::Bool, typename_str=typename isa Type ? string(nameof(typename)) : string(typename), vert_layout_rpad::Int=0, _sourceinfo=nothing)
+function per_property_pprint_exprs(f_exprs, properties, typename; mime_types::Union{Vector{Symbol}, GenericMimeType}, generate_base_show::Bool, typename_str=typename isa Type ? string(nameof(typename)) : string(typename), vert_layout_rpad::Int=0, _sourceinfo=nothing)
     input_obj = :obj
     (; horizontal, vertical) = _per_property_pprint_exprs(f_exprs, properties; vert_layout_rpad, input_obj)
     layout_horizontal, object_list_compact_expr = horizontal
@@ -58,22 +67,22 @@ function per_property_pprint_exprs(f_exprs, properties, typename; mime_types::Ve
     parentheses = isempty(typename_str) ? empty_parentheses : dict_parentheses
 
     output = Expr(:block)
-    for mime_type in mime_types 
-        mime_q = QuoteNode(mime_type)
+    _mime_types = mime_type_exprs(mime_types; add_text_plain=true)
+    for mime_type in _mime_types 
         push!(output.args, quote 
-            function $AutoPrettyPrinting.custom_tile_horiz($input_obj::$typename, mime::$Base.MIME{$mime_q}; kwargs...)
+            function $AutoPrettyPrinting.custom_tile_horiz($input_obj::$typename, mime::$mime_type; kwargs...)
                 return $(custom_tile_horiz_or_vert_body_expr(layout_horizontal, object_list_compact_expr; prefix=typename_str, parentheses, _sourceinfo, is_horiz=true))
             end
-            function $AutoPrettyPrinting.custom_tile_vert($input_obj::$typename, mime::$Base.MIME{$mime_q}; kwargs...)
+            function $AutoPrettyPrinting.custom_tile_vert($input_obj::$typename, mime::$mime_type; kwargs...)
                 return $(custom_tile_horiz_or_vert_body_expr(layout_vertical, object_list_vert_expr; prefix=typename_str, parentheses, _sourceinfo,is_horiz=false))
             end
-            $AutoPrettyPrinting.custom_tile($input_obj::$typename, mime::$Base.MIME{$mime_q}; kwargs...) = $custom_tile_horiz_or_vert($input_obj, mime; kwargs...)
+            $AutoPrettyPrinting.custom_tile($input_obj::$typename, mime::$mime_type; kwargs...) = $custom_tile_horiz_or_vert($input_obj, mime; kwargs...)
         end)
     end
     if generate_base_show
         show_expr = Expr(:block)
-        for mime_type in mime_types
-            push!(show_expr.args, generate_base_show_expr(typename, QuoteNode(mime_type)))
+        for mime_type in _mime_types
+            push!(show_expr.args, generate_base_show_expr(typename, mime_type))
         end
         push!(output.args, show_expr)
       
@@ -84,14 +93,14 @@ end
 per_property_pprint_exprs(properties, typename; kwargs...) = per_property_pprint_exprs(default_custom_tile_expr, properties, typename; kwargs...)
 
 
-@generated function custom_tile_horiz(x::NamedTuple{T}, mime::MIME; kwargs...) where {T}
+@generated function custom_tile_horiz(x::NamedTuple, mime::MIME; kwargs...)
     (; horizontal) = _per_property_pprint_exprs(default_custom_tile_expr, fieldnames(x); input_obj=:x)
     layout, object_list_expr = horizontal
     return custom_tile_horiz_or_vert_body_expr(layout, object_list_expr; prefix="", parentheses=named_tuple_parentheses, is_horiz=true)
 end
 
 
-@generated function custom_tile_vert(x::NamedTuple{T}, mime::MIME; kwargs...) where {T}
+@generated function custom_tile_vert(x::NamedTuple, mime::MIME; kwargs...)
     (; vertical) = _per_property_pprint_exprs(default_custom_tile_expr, fieldnames(x); input_obj=:x)
     layout, object_list_expr = vertical
     return custom_tile_horiz_or_vert_body_expr(layout, object_list_expr; prefix="", parentheses=named_tuple_parentheses, is_horiz=false)
