@@ -5,3 +5,4 @@
 Manifest.toml
 LocalPreferences.toml
 .vscode
+.commit_message
