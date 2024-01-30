@@ -68,7 +68,7 @@ function should_allow_horiz_container((@nospecialize x))
         return true
     end
 end
-should_allow_horiz(x::Union{AbstractVector, AbstractSet, AbstractDict}) = should_allow_horiz_container(x)
+should_allow_horiz(x::Union{AbstractVector, AbstractSet, AbstractDict, Tuple, NamedTuple}) = should_allow_horiz_container(x)
 
 function should_allow_horiz((@nospecialize x)) 
     T = typeof(x)
@@ -114,5 +114,5 @@ function should_allow_vert_container((@nospecialize x))
     end
 end
 
-should_allow_vert(x::Union{AbstractVector, AbstractSet, AbstractDict}) = should_allow_vert_container(x)
+should_allow_vert(x::Union{AbstractVector, AbstractSet, AbstractDict, Tuple, NamedTuple}) = should_allow_vert_container(x)
 
