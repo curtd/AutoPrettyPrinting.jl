@@ -3,7 +3,7 @@ DocTestSetup = nothing
 ```
 
 # Example usage 
-If we're not particular about the particular layout or format of our generated layouts, we can use the `@def_pprint` macro to define our `Base.show` method for the default `"text/plain"` MIME type.
+If we're not particular about the particular layout or format of the pretty printing layouts of our custom types, we can use the `@def_pprint` macro to define our `Base.show` method for the default `"text/plain"` MIME type.
 
 ```jldoctest examples
 julia> using AutoPrettyPrinting
@@ -97,8 +97,6 @@ julia> struct E
            value::Int
        end
 
-```
-```jldoctest examples
 julia> @custom_tile base_show=true E => AutoPrettyPrinting.literal("CustomE $(_obj_.value-1) - $(_mime_)")
 
 julia> e = E(10)
