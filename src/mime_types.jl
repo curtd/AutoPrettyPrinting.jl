@@ -2,7 +2,8 @@ mime_type_to_generate(::MIME"text/plain") = "text/plain"
 
 const all_mime_types_to_generate = Ref{Union{Nothing,Vector{Symbol}}}(nothing)
 
-@method_def_constant ValType=MIME mime_type_to_generate(::MIME{::Symbol}) _mime_types_to_generate
+_mime_type(::Type{MIME{S}}) where {S} = S 
+_mime_types_to_generate() = Symbol[_mime_type(fieldtype(m.sig, 2)) for m in methods(AutoPrettyPrinting.mime_type_to_generate)]
 
 @inline mime_types_to_generate(::Nothing) = _mime_types_to_generate()
 @inline mime_types_to_generate(input) = input

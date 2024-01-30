@@ -231,6 +231,16 @@ for horiz in (false, true)
     end
     f_name_dict = Symbol(f_name, :_dict)
     @eval begin 
+        function $f_name(x::Tuple, mime::MIME; kwargs...) 
+            if isempty(x)
+                return list_layout_prefer_horizontal(empty_layout; kwargs..., allow_horiz=$allow_horiz, allow_vert=$allow_vert, parentheses = dict_parentheses)
+            else
+                data = @pprint_values parent_is_container=true next_level=true show_typename=true begin 
+                    [$f_child(xi, mime; kwargs...) for xi in x]
+                end
+                return list_layout_prefer_horizontal(data; kwargs..., allow_horiz=$allow_horiz, allow_vert=$allow_vert, parentheses = dict_parentheses)
+            end
+        end
         function $f_name(x::AbstractVector, mime::MIME; kwargs...) 
             if isempty(x)
                 return list_layout_prefer_horizontal(empty_layout; kwargs..., allow_horiz=$allow_horiz, allow_vert=$allow_vert, parentheses = vector_parentheses)
@@ -310,7 +320,7 @@ function custom_tile_container(x, mime::MIME; kwargs...)
     end
 end
 
-custom_tile(x::Union{AbstractVector, AbstractSet, AbstractDict}, mime::MIME; kwargs...) = custom_tile_container(x, mime; kwargs...)
+custom_tile(x::Union{AbstractVector, AbstractSet, AbstractDict, Tuple}, mime::MIME; kwargs...) = custom_tile_container(x, mime; kwargs...)
 
 """
     pprint(io::IO, mime::MIME, obj)

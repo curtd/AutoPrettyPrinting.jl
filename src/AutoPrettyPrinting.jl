@@ -1,7 +1,9 @@
 module AutoPrettyPrinting
 
+    # These packages are included solely to define pretty printing methods for their types. Will be moved to package extensions when the stdlib is eventually trimmed down
     using Dates, Sockets
-    using MacroUtilities, PrettyPrinting, ScopedValues
+
+    using MacroUtilities, PrettyPrinting, PrecompileTools, ScopedValues
     import PrettyPrinting: literal, Layout
 
     export KeyValue 
@@ -20,4 +22,5 @@ module AutoPrettyPrinting
     include("prettyprinting.jl")
     include("code_generation.jl")
     include("auto_prettyprinting.jl")
+    include("precompile.jl")
 end 

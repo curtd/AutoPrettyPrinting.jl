@@ -2,6 +2,9 @@ const mime_types_docstr = "`mime_types=nothing`: The `MIME` types to generate. E
 
 const base_show_docstr = "`base_show::Bool=false`: If `true`, will define `Base.show(io::IO, ::MIME(mime), ::T)` for each `mime` in `mime_types`"
 
+normalize_mime_type_args(::Nothing) = collect(mime_types_to_generate())
+normalize_mime_type_args(mime_types::Vector{String}) = Symbol.(unique(mime_types))
+
 """
     @custom_tile [mime_types=nothing] [base_show=false] T => custom_tile_expr
 
@@ -18,11 +21,7 @@ macro custom_tile(args...)
         base_show::Bool = false 
         mime_types::Union{Vector{String}, Nothing} = nothing
     end
-    if isnothing(mime_types)
-        mime_types = mime_types_to_generate()
-    else 
-        mime_types = Symbol.(unique(mime_types))
-    end
+    mime_types = normalize_mime_type_args(mime_types)
     expr = args[end]
     f = from_expr(PairExpr{Any, Any}, expr; throw_error=true)
     typename = f.lhs
@@ -71,11 +70,7 @@ macro def_pprint(args...)
         properties::Union{Vector{Symbol}, Nothing} = nothing
         mime_types::Union{Vector{String}, Nothing} = nothing
     end
-    if isnothing(mime_types)
-        mime_types = collect(mime_types_to_generate())
-    else 
-        mime_types = Symbol.(unique(mime_types))
-    end
+    mime_types = normalize_mime_type_args(mime_types)
     type = args[end]
     _sourceinfo = __source__
     return Expr(:block, _sourceinfo, def_pprint_expr(type, __module__; mime_types, generate_base_show=base_show, properties)) |> esc
@@ -111,11 +106,7 @@ macro def_pprint_atomic(args...)
     if all_mime_types
         custom_tile_exprs = [:($AutoPrettyPrinting.custom_tile($x::$T, ::MIME; kwargs...) = $literal($to_string_expr))]
     else
-        if isnothing(mime_types)
-            mime_types = collect(mime_types_to_generate())
-        else 
-            mime_types = Symbol.(unique(mime_types))
-        end
+        mime_types = normalize_mime_type_args(mime_types)
         custom_tile_exprs = [:($AutoPrettyPrinting.custom_tile($x::$T, ::MIME{$(QuoteNode(m))}; kwargs...) = $literal($to_string_expr)) for m in mime_types]
     end
     
