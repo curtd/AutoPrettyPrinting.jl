@@ -41,6 +41,12 @@
         @Test repr_pretty(mime_plain, d) == "Dictionary( 1 => CustomTileFunc(1), 2 => CustomTileFunc(4), 3 => CustomTileFunc(9) )"
         @Test repr_pretty(mime_testing, d) == "Dictionary( 1 => CustomTileFunc(0), 2 => CustomTileFunc(1), 3 => CustomTileFunc(2) )"
     end
+    @testset "Aligned layout" begin 
+        v = VertAligned([:a => 1, :very_long_key => 2, :short_key => 3])
+        @Test repr_pretty(mime_plain, v) == ":a             = 1\n:very_long_key = 2\n:short_key     = 3"
+        v = VertAlignedKV(KeyValue.([:a => 1, :very_long_key => 2, :short_key => 3]))
+        @Test repr_pretty(mime_plain, v) == "a             = 1\nvery_long_key = 2\nshort_key     = 3"
+    end
     @testset "PrintContext" begin 
         x = TooManyFields(1,2,3,4,5)
         io = IOBuffer()
