@@ -82,7 +82,8 @@ function custom_tile_expr(typename, mime_type, tile_expr; _sourceinfo=nothing, g
     output = Any[]
     body = Expr(:block, _sourceinfo, tile_expr)
     push!(output, :($AutoPrettyPrinting.custom_tile($(object_arg)::$(typename), $(mime_arg)::$(mime_type); kwargs...) = $(body)))
-    append!(output, [:($AutoPrettyPrinting.$f($(object_arg)::$(typename), $(mime_arg)::$(mime_type); kwargs...) = $(body)) for f in (:custom_tile_horiz, :custom_tile_vert)])
+    push!(output, :($AutoPrettyPrinting.custom_tile_horiz($(object_arg)::$(typename), $(mime_arg)::$(mime_type); kwargs...) = $(body)))
+    push!(output, :($AutoPrettyPrinting.custom_tile_vert($(object_arg)::$(typename), $(mime_arg)::$(mime_type); kwargs...) = $(body)))
     if generate_base_show
         push!(output, generate_base_show_expr(typename, mime_type; _sourceinfo))
     end
