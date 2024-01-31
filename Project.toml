@@ -21,7 +21,7 @@ AutoPrettyPrintingTimeZonesExt = "TimeZones"
 
 [compat]
 Dates = "1"
-Dictionaries = "0.3"
+Dictionaries = "0.3, 0.4"
 MacroUtilities = "1.15"
 PrecompileTools = "1"
 PrettyPrinting = "0.4.1"

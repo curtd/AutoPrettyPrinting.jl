@@ -9,7 +9,7 @@ module AutoPrettyPrinting
     export KeyValue 
     
     export @mime_type, @custom_tile, @def_pprint, @hide_typename, @def_pprint_atomic, @decorators
-
+    
     export PPrintContext
     export repr_pretty
 

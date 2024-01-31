@@ -1,4 +1,11 @@
 @testset "Printing" begin 
+    @testset "Atomic types" begin 
+        @Test repr_pretty(mime_plain, Date(2024, 1, 1)) == "2024-01-01"
+        @Test repr_pretty(mime_plain, DateTime(2024, 1, 1, 12, 30)) == "2024-01-01T12:30:00"
+        @Test repr_pretty(mime_plain, Time(12, 31)) == "12:31:00"
+        @Test repr_pretty(mime_plain, ip"127.0.0.1") == "127.0.0.1"
+        @Test repr_pretty(mime_plain, ip"::") == "::"
+    end
     @testset "Pairs + KeyValues" begin 
         x = CustomTileFunc(2)
         @Test repr_pretty(:x => x) == ":x => CustomTileFunc(4)"
@@ -29,6 +36,11 @@
         @Test repr("text/plain", t) == "(x = $TooManyFields(1, 2, 3, 4, 5),)"
         @Test repr_pretty(t)  == ref_repr
     end 
+    @testset "Dictionaries" begin 
+        d = dictionary((i => CustomTileFunc(i) for i in 1:3))
+        @Test repr_pretty(mime_plain, d) == "Dictionary( 1 => CustomTileFunc(1), 2 => CustomTileFunc(4), 3 => CustomTileFunc(9) )"
+        @Test repr_pretty(mime_testing, d) == "Dictionary( 1 => CustomTileFunc(0), 2 => CustomTileFunc(1), 3 => CustomTileFunc(2) )"
+    end
     @testset "PrintContext" begin 
         x = TooManyFields(1,2,3,4,5)
         io = IOBuffer()

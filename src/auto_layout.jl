@@ -8,10 +8,10 @@ function pprint_values_expr(expr; level=nothing, next_level::Bool=false, parent_
         push!(m.args, :($AutoPrettyPrinting.PPRINT_NESTED_LEVEL => level+1))
     end
     if !isnothing(parent_is_container)
-        push!(m.args, :($AutoPrettyPrinting.PPRINT_PARENT_IS_CONTAINER => $(esc(parent_is_container))))
+        push!(m.args, :($AutoPrettyPrinting.PPRINT_PARENT_IS_CONTAINER => $(parent_is_container isa Bool ? parent_is_container : esc(parent_is_container))))
     end
     if !isnothing(show_typename)
-        push!(m.args, :($AutoPrettyPrinting.PPRINT_SHOW_TYPENAME => $(esc(show_typename))))
+        push!(m.args, :($AutoPrettyPrinting.PPRINT_SHOW_TYPENAME => $(show_typename isa Bool ? show_typename : esc(show_typename))))
     end
     push!(output_expr.args, to_expr(m(expr)))
     return output_expr

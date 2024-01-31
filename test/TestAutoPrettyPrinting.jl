@@ -1,5 +1,6 @@
 module TestAutoPrettyPrinting 
     using AutoPrettyPrinting
+    using Dictionaries, Dates, Sockets
     using JET, Test, TestingUtilities 
 
     import AutoPrettyPrinting: literal

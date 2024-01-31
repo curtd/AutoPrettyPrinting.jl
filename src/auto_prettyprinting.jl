@@ -54,8 +54,6 @@ function custom_tile_func_def_expr(tile_expr, mime_types, generic_mime)
     object_arg = :_obj_
     mime_arg = :_mime_
     g = from_expr(FuncDef, tile_expr)
-    object_arg = :_obj_
-    mime_arg = :_mime_
     if !isnothing(g)
         length(g.args) == 2 || throw(@arg_error tile_expr "Must have exactly two arguments")
         arg1 = g.args[1]
@@ -78,12 +76,12 @@ function custom_tile_func_def_expr(tile_expr, mime_types, generic_mime)
     end
     return object_arg, mime_arg, tile_expr, mime_types, generic_mime
 end
-function custom_tile_expr(typename, mime_type, tile_expr; _sourceinfo=nothing, generate_base_show::Bool, object_arg::Symbol, mime_arg::Symbol)
+function custom_tile_expr(typename, mime_type, tile_expr; _sourceinfo::Union{LineNumberNode, Nothing}=nothing, generate_base_show::Bool, object_arg::Symbol, mime_arg::Symbol)
     output = Any[]
     body = Expr(:block, _sourceinfo, tile_expr)
-    push!(output, :($AutoPrettyPrinting.custom_tile($(object_arg)::$(typename), $(mime_arg)::$(mime_type); kwargs...) = $(body)))
-    push!(output, :($AutoPrettyPrinting.custom_tile_horiz($(object_arg)::$(typename), $(mime_arg)::$(mime_type); kwargs...) = $(body)))
-    push!(output, :($AutoPrettyPrinting.custom_tile_vert($(object_arg)::$(typename), $(mime_arg)::$(mime_type); kwargs...) = $(body)))
+    push!(output, Expr(:(=), :($AutoPrettyPrinting.custom_tile($(object_arg)::$(typename), $(mime_arg)::$(mime_type); kwargs...)),body))
+    push!(output, Expr(:(=), :($AutoPrettyPrinting.custom_tile_horiz($(object_arg)::$(typename), $(mime_arg)::$(mime_type); kwargs...)),body))
+    push!(output, Expr(:(=), :($AutoPrettyPrinting.custom_tile_vert($(object_arg)::$(typename), $(mime_arg)::$(mime_type); kwargs...)),body))
     if generate_base_show
         push!(output, generate_base_show_expr(typename, mime_type; _sourceinfo))
     end
@@ -93,7 +91,7 @@ end
 """
     @custom_tile [mime_types=nothing] [generic_mime=false] [base_show=false] T => custom_tile_expr
 
-Defines a `AutoPrettyPrinting.custom_tile` method for type `T` and optionally provided `mime_types` using `custom_tile_expr` as the function's body. 
+Creates custom tile method definitions for type `T` and optionally provided `mime_types` using `custom_tile_expr` as the function's body. 
 
 # Arguments 
 - $mime_types_docstr
@@ -114,25 +112,24 @@ macro custom_tile(args...)
     object_arg, mime_arg, tile_expr, mime_types, generic_mime = custom_tile_func_def_expr(f.rhs, mime_types, generic_mime)
     mime_types = normalize_mime_type_args(mime_types; generic_mime)
 
-    _sourceinfo = __source__
-    output = Expr(:block, _sourceinfo)
+    output = Expr(:block, __source__)
     
     for mime_type in mime_type_exprs(mime_types) 
-        append!(output.args, custom_tile_expr(typename, mime_type, tile_expr; _sourceinfo, generate_base_show=base_show, object_arg, mime_arg))
+        append!(output.args, custom_tile_expr(typename, mime_type, tile_expr; _sourceinfo=__source__, generate_base_show=base_show, object_arg, mime_arg))
     end
 
     return output |> esc
 end
 
-function def_pprint_expr(type, _mod; properties::Union{Vector{Symbol}, Nothing}, mime_types::Union{Vector{Symbol}, GenericMimeType}, generate_base_show::Bool)
+function def_pprint_expr(type, _mod; properties::Union{Vector{Symbol}, Nothing}, mime_types::Union{Vector{Symbol}, GenericMimeType}, generate_base_show::Bool, _sourceinfo::Union{LineNumberNode, Nothing}=nothing)
     mime_types_expr = mime_types isa GenericMimeType ? :($GenericMimeType()) : Expr(:vect, QuoteNode.(mime_types)...)
-    return Base.remove_linenums!(quote 
+    source_expr = _sourceinfo isa LineNumberNode ? :(LineNumberNode($(_sourceinfo.line), $(QuoteNode(_sourceinfo.file)))) : :nothing
+    return quote 
         let 
-            local _properties = $(isnothing(properties) ? :($Base.fieldnames($type)) : Expr(:tuple, QuoteNode.(properties)...))
-            local expr = $per_property_pprint_exprs(_properties, $type; generate_base_show=$generate_base_show, mime_types=$(mime_types_expr))
+            local expr = $per_property_pprint_exprs($(isnothing(properties) ? :($Base.fieldnames($type)) : Expr(:tuple, QuoteNode.(properties)...)), $type; generate_base_show=$generate_base_show, mime_types=$(mime_types_expr), _sourceinfo=$(source_expr))
             $Core.eval($_mod, expr)
         end
-    end)
+    end
 end
 
 """
@@ -156,8 +153,7 @@ macro def_pprint(args...)
     end
     mime_types = normalize_mime_type_args(mime_types; generic_mime)
     type = args[end]
-    _sourceinfo = __source__
-    return Expr(:block, _sourceinfo, def_pprint_expr(type, __module__; mime_types, generate_base_show=base_show, properties)) |> esc
+    return Expr(:block, __source__, def_pprint_expr(type, __module__; mime_types, generate_base_show=base_show, properties, _sourceinfo=__source__)) |> esc
 end
 
 """
@@ -192,9 +188,9 @@ macro def_pprint_atomic(args...)
     T = esc(args[end])
     _mime_types = normalize_mime_type_args(mime_types; generic_mime)
 
-    custom_tile_exprs = [:($AutoPrettyPrinting.custom_tile($x::$T, ::$mime_type; kwargs...) = $literal($to_string_expr)) for mime_type in mime_type_exprs(_mime_types)]
+    custom_tile_exprs = [Expr(:(=), :($AutoPrettyPrinting.custom_tile($x::$T, ::$mime_type; kwargs...)), Expr(:block, __source__, :($literal($to_string_expr)))) for mime_type in mime_type_exprs(_mime_types)]
     
-    return Expr(:block, __source__, :($AutoPrettyPrinting._is_atomic_type(::Type{<:$T}) = true), custom_tile_exprs...)
+    return Expr(:block, __source__, Expr(:(=), :($AutoPrettyPrinting._is_atomic_type(::Type{<:$T})), Expr(:block, __source__, :true)), custom_tile_exprs...)
 end
 
 
@@ -210,9 +206,7 @@ for T in (:(Period), :(Instant), :(TimeType))
     end
 end
 
-for T in (:IPv4, :IPv6)
-    @eval @def_pprint_atomic all_mime_types=true Sockets.$T 
-end
+@def_pprint_atomic all_mime_types=true Sockets.IPAddr
 
 """
     PPrintContext(io::IO, [mime::MIME])
