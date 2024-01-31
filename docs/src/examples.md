@@ -3,6 +3,7 @@ DocTestSetup = nothing
 ```
 
 # Example usage 
+## Basic package macros
 If we're not particular about the particular layout or format of the pretty printing layouts of our custom types, we can use the `@def_pprint` macro to define our `Base.show` method for the default `"text/plain"` MIME type.
 
 ```jldoctest examples
