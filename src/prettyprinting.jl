@@ -23,8 +23,8 @@ end
 Base.first(x::KeyValue) = x.key
 Base.last(x::KeyValue) = x.value
 
-const KV_SEPARATOR = Ref(" = ")
-const PAIR_SEPARATOR = Ref(" => ")
+const KV_SEPARATOR = ScopedValue(" = ")
+const PAIR_SEPARATOR = ScopedValue(" => ")
 
 kv_separator_horiz((@nospecialize T::Type{<:KeyValue})) = literal(KV_SEPARATOR[])
 kv_separator_vert((@nospecialize T::Type{<:KeyValue})) = literal(KV_SEPARATOR[])
@@ -34,14 +34,15 @@ kv_separator_vert((@nospecialize T::Type{<:Pair})) = literal(PAIR_SEPARATOR[])
 kv_separator_horiz((@nospecialize x)) = kv_separator_horiz(typeof(x))
 kv_separator_vert((@nospecialize x)) = kv_separator_vert(typeof(x))
 
-const vector_parentheses = ("[", "]")
-const set_parentheses = ("{", "}")
-const dict_parentheses = ("(", ")")
-const named_tuple_parentheses = ("(; ", ")")
+const vector_parentheses = ScopedValue(("[", "]"))
+const set_parentheses = ScopedValue(("{", "}"))
+const dict_parentheses = ScopedValue(("(", ")"))
+const tuple_parentheses = ScopedValue(("(", ")"))
+const named_tuple_parentheses = ScopedValue(("(; ", ")"))
 const empty_parentheses = ("", "")
 
-const default_horiz_separator = ", "
-const default_vert_separator = ""
+const default_horiz_separator = ScopedValue(", ")
+const default_vert_separator = ScopedValue("")
 const empty_layout = Union{Layout, Nothing}[]
 
 """
@@ -53,12 +54,109 @@ macro hide_typename(ex)
     return :($AutoPrettyPrinting.@with $AutoPrettyPrinting.PPRINT_SHOW_TYPENAME => false $(esc(ex)))
 end
 
+function decorators_expr(expr; horiz_separator=nothing, kv_separator=nothing, pair_separator=nothing, vector_parentheses=nothing, set_parentheses=nothing, dict_parentheses=nothing, tuple_parentheses=nothing, named_tuple_parentheses=nothing, _sourceinfo=not_provided)
+    @nospecialize
+
+    output_expr = Expr(:block)
+    m = MacroCall(; name=:($AutoPrettyPrinting.$(Symbol("@with"))), line=_sourceinfo)
+    if !isnothing(horiz_separator)
+        push!(m.args, :($AutoPrettyPrinting.default_horiz_separator => $(esc(horiz_separator))))
+    end
+    if !isnothing(kv_separator)
+        push!(m.args, :($AutoPrettyPrinting.KV_SEPARATOR => $(esc(kv_separator))))
+    end
+    if !isnothing(pair_separator)
+        push!(m.args, :($AutoPrettyPrinting.PAIR_SEPARATOR => $(esc(pair_separator))))
+    end
+    if !isnothing(vector_parentheses)
+        push!(m.args, :($AutoPrettyPrinting.vector_parentheses => $(esc(vector_parentheses))))
+    end
+    if !isnothing(set_parentheses)
+        push!(m.args, :($AutoPrettyPrinting.set_parentheses => $(esc(set_parentheses))))
+    end
+    if !isnothing(dict_parentheses)
+        push!(m.args, :($AutoPrettyPrinting.dict_parentheses => $(esc(dict_parentheses))))
+    end
+    if !isnothing(tuple_parentheses)
+        push!(m.args, :($AutoPrettyPrinting.tuple_parentheses => $(esc(tuple_parentheses))))
+    end
+    if !isnothing(named_tuple_parentheses)
+        push!(m.args, :($AutoPrettyPrinting.named_tuple_parentheses => $(esc(named_tuple_parentheses))))
+    end
+    push!(output_expr.args, to_expr(m(expr)))
+    return output_expr
+end
+
+"""
+    @decorators [separators=nothing] [parentheses=nothing] expr
+
+Executes `expr` using the prescribed decorator strings specified in `kwargs`.
+
+If provided, `separators` must be of the form `(key1=value1, ...)` and the provided values must resolve to a `String` type
+If provided, `parentheses` must be of the form `(key1=value1, ...)` and the provided values must resolve to a `Tuple{String, String}` type
+
+# Arguments 
+## Separators
+- `horiz` - separator string used when joining items horizontally
+- `kv` - separator string used when rendering `KeyValue` pairs
+- `pair` - separator string used when rendering `Pair` objects
+
+## Parentheses
+- `vector` - start + end parentheses used when rendering `AbstractVector`s
+- `set` - start + end parentheses used when rendering `AbstractSet`s
+- `dict` - start + end parentheses used when rendering `AbstractDict` and `AbstractDictionary`s
+- `tuple` - start + end parentheses used when rendering `Tuple`s
+- `named_tuple` - start + end parentheses used when rendering `NamedTuple`s
+"""
+macro decorators(args...)
+    length(args) ≥ 2 || error("Must have at least two arguments")
+    @parse_kwargs args[1:end-1]... begin 
+        separators::Union{Expr, Nothing} = nothing
+        parentheses::Union{Expr, Nothing} = nothing 
+    end
+    horiz_separator = kv_separator = pair_separator = nothing
+    if !isnothing(separators)
+        f = from_expr(NamedTupleExpr, separators; throw_error=true)
+        if haskey(f, :horiz)
+            horiz_separator = f[:horiz].value 
+        end
+        if haskey(f, :kv)
+            kv_separator = f[:kv].value 
+        end
+        if haskey(f, :pair)
+            pair_separator = f[:pair].value 
+        end
+    end
+    vector_parentheses = set_parentheses = dict_parentheses = tuple_parentheses = named_tuple_parentheses = nothing
+    if !isnothing(parentheses)
+        f = from_expr(NamedTupleExpr, parentheses; throw_error=true)
+        if haskey(f, :vector)
+            vector_parentheses = f[:vector].value 
+        end
+        if haskey(f, :set)
+            set_parentheses = f[:set].value 
+        end
+        if haskey(f, :dict)
+            dict_parentheses = f[:dict].value 
+        end
+        if haskey(f, :tuple)
+            tuple_parentheses = f[:tuple].value 
+        end
+        if haskey(f, :named_tuple)
+            named_tuple_parentheses = f[:named_tuple].value 
+        end
+    end
+
+    return decorators_expr(esc(args[end]); horiz_separator, kv_separator, pair_separator, vector_parentheses, set_parentheses, dict_parentheses, tuple_parentheses, named_tuple_parentheses, _sourceinfo=__source__)
+end
+
+
 # Adapted from PrettyPrinting.jl
 function list_layout_prefer_horizontal(horizontal_items::Vector{<:Union{Nothing,Layout}}, vertical_items::Vector{<:Union{Nothing,Layout}};
     prefix::Union{String,Symbol,Layout}="",
-    parentheses::Tuple{String,String}=vector_parentheses,
-    horizontal_sep::String=default_horiz_separator,
-    vertical_sep::String=default_vert_separator,
+    parentheses::Union{Tuple{String,String}, ScopedValue{Tuple{String,String}}}=vector_parentheses,
+    horizontal_sep::String=default_horiz_separator[],
+    vertical_sep::String=default_vert_separator[],
     sep_brk=:end,
     indent_width::Int=PP_DEFAULT_INDENT_NUM_SPACES[], 
     break_factor::Int=1,
@@ -69,6 +167,9 @@ function list_layout_prefer_horizontal(horizontal_items::Vector{<:Union{Nothing,
      kwargs...)
     if !allow_horiz && !allow_vert
         allow_horiz = true 
+    end
+    if parentheses isa ScopedValue 
+        parentheses = parentheses[]
     end
     prefix_lt = prefix isa Layout ? prefix : literal(prefix)
     header = prefix_lt * literal(parentheses[1])
@@ -233,12 +334,12 @@ for horiz in (false, true)
     @eval begin 
         function $f_name(x::Tuple, mime::MIME; kwargs...) 
             if isempty(x)
-                return list_layout_prefer_horizontal(empty_layout; kwargs..., allow_horiz=$allow_horiz, allow_vert=$allow_vert, parentheses = dict_parentheses)
+                return list_layout_prefer_horizontal(empty_layout; kwargs..., allow_horiz=$allow_horiz, allow_vert=$allow_vert, parentheses = tuple_parentheses)
             else
                 data = @pprint_values parent_is_container=true next_level=true show_typename=true begin 
                     [$f_child(xi, mime; kwargs...) for xi in x]
                 end
-                return list_layout_prefer_horizontal(data; kwargs..., allow_horiz=$allow_horiz, allow_vert=$allow_vert, parentheses = dict_parentheses)
+                return list_layout_prefer_horizontal(data; kwargs..., allow_horiz=$allow_horiz, allow_vert=$allow_vert, parentheses = tuple_parentheses)
             end
         end
         function $f_name(x::AbstractVector, mime::MIME; kwargs...) 
@@ -313,6 +414,8 @@ function custom_tile_horiz_or_vert(o, mime::MIME; kwargs...)
         return custom_tile_vert(o, mime; kwargs...,)
     end
 end
+
+custom_tile(x::Union{Pair, KeyValue}, mime::MIME; kwargs...) = custom_tile_horiz_or_vert(x, mime; kwargs...)
 
 function custom_tile_container(x, mime::MIME; kwargs...) 
     @pprint_values parent_is_container=true begin 
