@@ -62,6 +62,16 @@ module TestAutoPrettyPrinting
     @custom_tile base_show=true CustomTileFunc => (p, mime::MIME"text/plain") -> literal("CustomTileFunc($(p.value^2))")
     @custom_tile base_show=true CustomTileFunc => (p, mime::MIME"text/test_auto_pretty_printing") -> literal("CustomTileFunc($(p.value-1))")
 
+    struct VertAligned 
+        values::Vector{Pair{Symbol, Int}}
+    end
+    @custom_tile base_show=true VertAligned => (p, mime::MIME"text/plain") -> AutoPrettyPrinting.custom_tile_vert_aligned(p.values, mime)
+
+    struct VertAlignedKV
+        values::Vector{KeyValue{Symbol, Int}}
+    end
+    @custom_tile base_show=true VertAlignedKV => (p, mime::MIME"text/plain") -> AutoPrettyPrinting.custom_tile_vert_aligned(p.values, mime)
+
     @testset "AutoPrettyPrinting" begin 
         include("tests/test_util.jl")
         include("tests/test_macros.jl")

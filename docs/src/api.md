@@ -17,6 +17,7 @@
 AutoPrettyPrinting.custom_tile(x, mime::MIME; kwargs...)
 AutoPrettyPrinting.custom_tile_horiz(x, mime::MIME; kwargs...)
 AutoPrettyPrinting.custom_tile_vert(x, mime::MIME; kwargs...)
+AutoPrettyPrinting.custom_tile_vert_aligned(x, mime::MIME; kwargs...)
 AutoPrettyPrinting.pprint(io::IO, mime::MIME, obj)
 repr_pretty
 ```

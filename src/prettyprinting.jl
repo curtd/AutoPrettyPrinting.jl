@@ -23,6 +23,8 @@ end
 Base.first(x::KeyValue) = x.key
 Base.last(x::KeyValue) = x.value
 
+KeyValue(p::Pair) = KeyValue(first(p), last(p))
+
 const KV_SEPARATOR = ScopedValue(" = ")
 const PAIR_SEPARATOR = ScopedValue(" => ")
 
@@ -424,6 +426,35 @@ function custom_tile_container(x, mime::MIME; kwargs...)
 end
 
 custom_tile(x::Union{AbstractVector, AbstractSet, AbstractDict, Tuple}, mime::MIME; kwargs...) = custom_tile_container(x, mime; kwargs...)
+
+
+"""
+    custom_tile_vert_aligned(itr, mime::MIME)
+
+Given iterator `itr` whose elements are either a 2-`Tuple`, `Pair`, or `KeyValue`, 
+returns a vertical tile layout of `key = value` pairs where the keys are aligned to the key-value separator (default: `=`).
+
+Each key in `itr` is converted to a `String` via `repr(mime, key)`, unless the iterate is a `KeyValue`, in which case `string(key)` is used.
+
+"""
+function custom_tile_vert_aligned(itr, mime::MIME; kwargs...)
+    _keys = String[]
+    _layouts = []
+    for y in itr
+        if y isa KeyValue 
+            k = y.key 
+            v = y.value 
+            push!(_keys, string(k))
+        else
+            (k, v) = y
+            push!(_keys, repr(mime, k))
+        end
+        push!(_layouts, custom_tile(v, mime))
+    end
+    max_key_length = mapfoldl(textwidth, max, _keys; init=0) 
+    vert_layout = [ _custom_tile_padded_key(key, kv_separator_vert(KeyValue), value, max_key_length) for (key, value) in zip(_keys, _layouts) ]
+    return list_layout_prefer_horizontal(empty_layout, vert_layout; prefix="", allow_horiz=false, allow_vert=true, parentheses=empty_parentheses, kwargs...) 
+end
 
 """
     pprint(io::IO, mime::MIME, obj)
