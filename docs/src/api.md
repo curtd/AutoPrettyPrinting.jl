@@ -7,6 +7,7 @@
 @def_pprint
 @def_pprint_atomic
 @hide_typename
+@decorators
 ```
 
 ## Functions 
