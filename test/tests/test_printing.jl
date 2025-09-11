@@ -57,5 +57,11 @@
         @Test str == ref_repr
         @Test repr_pretty(x) == ref_repr
     end
+    @testset "Possibly undefined fields" begin 
+        v = MaybeUndefType()
+        @Test repr_pretty(v) == "MaybeUndefType(v = #undef)"
+        v.v = VertAlignedKV(KeyValue.([:a => 1, :very_long_key => 2, :short_key => 3]))
+        @Test repr_pretty(v) == "MaybeUndefType(v = a             = 1\n                   very_long_key = 2\n                   short_key     = 3)"
+    end    
 
 end

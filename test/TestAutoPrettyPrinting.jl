@@ -72,6 +72,12 @@ module TestAutoPrettyPrinting
     end
     @custom_tile base_show=true VertAlignedKV => (p, mime::MIME"text/plain") -> AutoPrettyPrinting.custom_tile_vert_aligned(p.values, mime)
 
+    mutable struct MaybeUndefType
+        v::VertAlignedKV
+        MaybeUndefType() = new()
+    end
+    @def_pprint mime_types="text/plain" base_show=true MaybeUndefType
+
     @testset "AutoPrettyPrinting" begin 
         include("tests/test_util.jl")
         include("tests/test_macros.jl")

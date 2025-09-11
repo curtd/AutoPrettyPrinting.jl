@@ -41,7 +41,7 @@ const simple_struct_nfields_threshold = 4
 function is_simple_struct(t)
     T = typeof(t) 
     if isstructtype(T)
-        return length(fieldnames(T)) ≤ simple_struct_nfields_threshold && all( (v = getfield(t, k); (_is_atomic_type(v) || is_simple_struct(v))) for k in fieldnames(T) )
+        return length(fieldnames(T)) ≤ simple_struct_nfields_threshold && all( (isdefined(t, k) ? (v = getfield(t, k); (_is_atomic_type(v) || is_simple_struct(v))) : true) for k in fieldnames(T) )
     else
         return false 
     end
