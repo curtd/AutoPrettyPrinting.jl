@@ -48,14 +48,16 @@ jobs:
     name: Documentation
     runs-on: ubuntu-latest
     permissions:
+      actions: write
       contents: write
+      pull-requests: read
       statuses: write
     steps:
         - uses: actions/checkout@v4
-        - uses: julia-actions/setup-julia@v1
+        - uses: julia-actions/setup-julia@v2
           with:
             version: '1.9'
-        - uses: julia-actions/cache@v1
+        - uses: julia-actions/cache@v2
         - name: Install dependencies
           run: julia --project=docs/ -e 'using Pkg; Pkg.develop(PackageSpec(path=pwd())); Pkg.instantiate()'
         - name: Build and deploy
