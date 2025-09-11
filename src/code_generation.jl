@@ -37,8 +37,9 @@ function _per_property_pprint_exprs(f_exprs, properties; vert_layout_rpad::Int=0
 
         y = f_exprs(_property)
         if isnothing(y)
-            value_compact_horiz = :($custom_tile_horiz($Base.getproperty($input_obj, $(property)), mime; kwargs...) )
-            value_compact_vert = :($custom_tile($Base.getproperty($input_obj, $(property)), mime; kwargs...) )
+            value = :($Base.isdefined($input_obj, $(property)) ? $Base.getproperty($input_obj, $(property)) : "#undef")
+            value_compact_horiz = :($custom_tile_horiz($value, mime; kwargs...) )
+            value_compact_vert = :($custom_tile($value, mime; kwargs...) )
         elseif length(y) == 2 
             value_compact_horiz, value_compact_vert = y
         else
